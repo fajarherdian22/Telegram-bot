@@ -41,7 +41,7 @@ func main() {
 
 	log.Printf("Authorized on account %s", bot.Self.UserName)
 
-	u := tbot.NewUpdate(0)
+	u := tbot.NewUpdate(1)
 	u.Timeout = 60
 
 	updates := bot.GetUpdatesChan(u)
@@ -57,9 +57,11 @@ func main() {
 
 			msgSelectDash := "Please select dashboard name below here ✅ !"
 
+			fmt.Println(senderName, ":", incomingChat)
+
 			switch incomingChat {
 			case "/start":
-				msg.Text = fmt.Sprintf("Welcome %s bot %s !", bot.Self.FirstName, senderName)
+				msg.Text = fmt.Sprintf("Welcome into %s %s !", bot.Self.FirstName, senderName)
 			case "/hi":
 				msg.Text = intro + "i'm " + bot.Self.FirstName
 			case "/help":
@@ -67,7 +69,7 @@ func main() {
 			case "/about":
 				msg.Text = intro + "this about"
 			case "/dashboard":
-				msg.Text = fmt.Sprintf("%s\n Please select domain dashboard below here ✅", intro)
+				msg.Text = fmt.Sprintf("%s\nPlease select domain dashboard below here ✅", intro)
 				msg.ReplyMarkup = dashboardCommand
 
 			case "ran 📶":
@@ -93,40 +95,70 @@ func main() {
 			default:
 				msg.Text = "I don't know your command :("
 			}
-
-			if incomingChat != "/dashboard" {
-				msg.ReplyToMessageID = update.Message.MessageID
-			}
+			msg.ReplyToMessageID = update.Message.MessageID
 			if _, err := bot.Send(msg); err != nil {
 				fmt.Println(err)
 			}
 
 		} else if update.CallbackQuery != nil {
+
 			waitMsg := "Please wait while we are getting your request !"
 			requestInline := update.CallbackQuery.Data
 			targetInline := update.CallbackQuery.Message.Chat.ID
 
 			callback := tbot.NewCallback(update.CallbackQuery.ID, requestInline)
 
+			msg := tbot.NewMessage(targetInline, requestInline)
+
 			if _, err := bot.Request(callback); err != nil {
 				fmt.Println(err)
 			}
-			bot.Send(tbot.NewMessage(targetInline, waitMsg))
 
-			result, err := process_show_dashboard(requestInline)
-			isError(err)
+			if strings.Count(requestInline, " ") == 1 {
+				var list []string
+				switch requestInline {
+				case "core_perf area":
+					list = neArea
+				case "core_perf ne":
+					list = ne
+				default:
+					if strings.Contains(requestInline, "circle") {
+						list = Circle
+					} else if strings.Contains(requestInline, "region") {
+						list = region
+					} else if strings.Contains(requestInline, "area") {
+						list = area
+					} else if strings.Contains(requestInline, "ggsn") {
+						list = ggsn
+					} else if strings.Contains(requestInline, "location") {
+						list = ggsnArea
+					}
+				}
 
-			img := tbot.FileBytes{
-				Name:  "picture",
-				Bytes: result,
+				dashList := GetDrillDash(requestInline, list)
+				msg.ReplyMarkup = dashList
+
+				if _, err := bot.Send(msg); err != nil {
+					fmt.Println(err)
+				}
+
+			} else {
+				bot.Send(tbot.NewMessage(targetInline, waitMsg))
+				result, err := process_show_dashboard(requestInline)
+				isError(err)
+				img := tbot.FileBytes{
+					Name:  "picture",
+					Bytes: result,
+				}
+
+				_, err = bot.Send(tbot.NewPhoto(targetInline, img))
+
+				if err != nil {
+					bot.Send(tbot.NewMessage(targetInline, "Command unrecognized!"))
+				}
+
 			}
-
-			_, err = bot.Send(tbot.NewPhoto(targetInline, img))
-
-			if err != nil {
-				bot.Send(tbot.NewMessage(targetInline, "Command unrecognized!"))
-			}
-
 		}
 	}
+
 }

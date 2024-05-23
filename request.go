@@ -18,7 +18,7 @@ type commonResponse struct {
 
 func process_show_dashboard(dashboardName string) (result []byte, err error) {
 
-	url := "http://10.13.57.9:8080/api/v1/dashboard/show"
+	url := "http://localhost:8080/api/v1/dashboard/show"
 
 	payload := []byte(fmt.Sprintf(`{"command":"%s"}`, dashboardName))
 
@@ -54,7 +54,7 @@ func process_show_dashboard(dashboardName string) (result []byte, err error) {
 
 func process_list_dashboard() (listDashboard []string, err error) {
 
-	url := "http://10.13.57.9:8080/api/v1/dashboard/list"
+	url := "http://localhost:8080/api/v1/dashboard/list"
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -90,7 +90,7 @@ func process_list_dashboard() (listDashboard []string, err error) {
 
 func process_list_dashboard_by_cat(category string) (listDashboard []string, err error) {
 
-	urlCategory := "http://10.13.57.9:8080/api/v1/dashboard/category"
+	urlCategory := "http://localhost:8080/api/v1/dashboard/category"
 
 	urlPath, err := url.Parse(urlCategory)
 	if err != nil {
