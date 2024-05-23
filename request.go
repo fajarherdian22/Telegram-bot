@@ -16,16 +16,18 @@ type commonResponse struct {
 	Type   string   `json:"type,omitempty"`
 }
 
-func process_show_dashboard(dashboardName string) (result []byte, err error) {
+func process_show_dashboard(dashboardName string) (result []byte, cType string, err error) {
 
-	url := "http://localhost:8080/api/v1/dashboard/show"
+	url := "http://10.13.57.9:8080/api/v1/dashboard/show"
 
 	payload := []byte(fmt.Sprintf(`{"command":"%s"}`, dashboardName))
+
+	fmt.Println(string(payload))
 
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
 	if err != nil {
 		fmt.Println("Error creating request:", err)
-		return nil, err
+		return nil, "", err
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -34,7 +36,7 @@ func process_show_dashboard(dashboardName string) (result []byte, err error) {
 	resp, err := client.Do(req)
 	if err != nil {
 		fmt.Println("Error making request:", err)
-		return nil, err
+		return nil, "", err
 	}
 
 	defer resp.Body.Close()
@@ -42,14 +44,16 @@ func process_show_dashboard(dashboardName string) (result []byte, err error) {
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		fmt.Println("Error reading response:", err)
-		return nil, err
+		return nil, "", err
 	}
+
+	mimeType := http.DetectContentType(body)
 
 	if resp.StatusCode != 200 {
-		return nil, errors.New("no dashboard name found")
+		return nil, "", errors.New("no dashboard name found")
 	}
 
-	return body, nil
+	return body, mimeType, nil
 }
 
 func process_list_dashboard() (listDashboard []string, err error) {
