@@ -22,8 +22,6 @@ func process_show_dashboard(dashboardName string) (result []byte, cType string, 
 
 	payload := []byte(fmt.Sprintf(`{"command":"%s"}`, dashboardName))
 
-	fmt.Println(string(payload))
-
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(payload))
 	if err != nil {
 		fmt.Println("Error creating request:", err)

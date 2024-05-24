@@ -3,9 +3,27 @@ package main
 import (
 	"fmt"
 	"strings"
+	"time"
 
 	tbot "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
+
+var dashboardCommand = tbot.NewReplyKeyboard(
+	tbot.NewKeyboardButtonRow(
+		tbot.NewKeyboardButton("ran 📶"),
+		tbot.NewKeyboardButton("core 📡"),
+	),
+	tbot.NewKeyboardButtonRow(
+		tbot.NewKeyboardButton("netstat 🌎"),
+		tbot.NewKeyboardButton("sales 🛒"),
+	),
+)
+
+func setRequestDashboard(domain string) tbot.InlineKeyboardMarkup {
+	list, err := process_list_dashboard_by_cat(domain)
+	isError(err)
+	return GetListDash(list)
+}
 
 func handleMessage(update tbot.Update, bot *tbot.BotAPI) {
 	incomingChat := strings.ToLower(update.Message.Text)
@@ -14,11 +32,13 @@ func handleMessage(update tbot.Update, bot *tbot.BotAPI) {
 	intro := fmt.Sprintf("Hello %s ", senderName)
 	msgDash := "Please select dashboard name below here ✅!"
 
-	fmt.Println(senderName, ":", incomingChat)
+	TimeMessage := time.Unix(int64(update.Message.Date), 0).Format("2006-01-02 15:04:05")
+	fmt.Println(fmt.Sprintf("%s - %s : %s", TimeMessage, senderName, incomingChat))
 
 	switch incomingChat {
+
 	case "/start":
-		msg.Text = fmt.Sprintf("Welcome into %s %s !", bot.Self.FirstName, senderName)
+		msg.Text = fmt.Sprintf("Welcome into %s %s !\nYou can access and request dashboard by typing /dashboard or click in menu !", bot.Self.FirstName, senderName)
 	case "/hi":
 		msg.Text = intro + "i'm " + bot.Self.FirstName
 	case "/help":
@@ -44,23 +64,22 @@ func handleMessage(update tbot.Update, bot *tbot.BotAPI) {
 		msg.Text = "I don't know your command :("
 	}
 	msg.ReplyToMessageID = update.Message.MessageID
-	if _, err := bot.Send(msg); err != nil {
-		fmt.Println(err)
-	}
+	_, err := bot.Send(msg)
+	isErrorMessage(err, update.Message.Chat.ID, bot)
 }
 
 func handleCallback(update tbot.Update, bot *tbot.BotAPI) {
 	waitMsg := "Please wait while we are getting your request !"
 	requestInline := update.CallbackQuery.Data
 	targetInline := update.CallbackQuery.Message.Chat.ID
+	TimeMessage := time.Unix(int64(update.CallbackQuery.Message.Date), 0).Format("2006-01-02 15:04:05")
 
 	callback := tbot.NewCallback(update.CallbackQuery.ID, requestInline)
 
 	msg := tbot.NewMessage(targetInline, requestInline)
 
-	if _, err := bot.Request(callback); err != nil {
-		fmt.Println(err)
-	}
+	_, err := bot.Request(callback)
+	isErrorMessage(err, targetInline, bot)
 
 	if strings.Count(requestInline, " ") == 1 {
 		var list []string
@@ -84,28 +103,28 @@ func handleCallback(update tbot.Update, bot *tbot.BotAPI) {
 				list = nil
 			}
 		}
+		msg.ReplyMarkup = GetDrillDash(requestInline, list)
 
-		dashList := GetDrillDash(requestInline, list)
-		msg.ReplyMarkup = dashList
-
-		if _, err := bot.Send(msg); err != nil {
-			fmt.Println(err)
-		}
+		_, err := bot.Send(msg)
+		isErrorMessage(err, targetInline, bot)
 
 	} else {
 		bot.Send(tbot.NewMessage(targetInline, waitMsg))
 		result, cType, err := process_show_dashboard(requestInline)
-		isError(err)
+		isErrorMessage(err, targetInline, bot)
+
+		fmt.Println(TimeMessage, "-", "Request", ":", requestInline)
+
+		// Sending ImageHandler
 		img := tbot.FileBytes{
 			Name:  cType,
 			Bytes: result,
 		}
+		msg := tbot.NewPhoto(targetInline, img)
+		msg.Caption = requestInline
 
-		_, err = bot.Send(tbot.NewPhoto(targetInline, img))
-
-		if err != nil {
-			bot.Send(tbot.NewMessage(targetInline, "Command unrecognized!"))
-		}
+		_, err = bot.Send(msg)
+		isErrorMessage(err, targetInline, bot)
 
 	}
 }

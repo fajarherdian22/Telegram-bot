@@ -8,23 +8,6 @@ import (
 	"github.com/joho/godotenv"
 )
 
-var dashboardCommand = tbot.NewReplyKeyboard(
-	tbot.NewKeyboardButtonRow(
-		tbot.NewKeyboardButton("ran 📶"),
-		tbot.NewKeyboardButton("core 📡"),
-	),
-	tbot.NewKeyboardButtonRow(
-		tbot.NewKeyboardButton("netstat 🌎"),
-		tbot.NewKeyboardButton("sales 🛒"),
-	),
-)
-
-func setRequestDashboard(domain string) tbot.InlineKeyboardMarkup {
-	list, err := process_list_dashboard_by_cat(domain)
-	isError(err)
-	return GetListDash(list)
-}
-
 func main() {
 	err := godotenv.Load()
 	isError(err)
@@ -42,11 +25,14 @@ func main() {
 	updates := bot.GetUpdatesChan(u)
 
 	for update := range updates {
-		if update.Message != nil {
-			handleMessage(update, bot)
-		} else if update.CallbackQuery != nil {
-			handleCallback(update, bot)
-		}
+		go Messagefunc(update, bot)
 	}
+}
 
+func Messagefunc(update tbot.Update, bot *tbot.BotAPI) {
+	if update.Message != nil {
+		handleMessage(update, bot)
+	} else if update.CallbackQuery != nil {
+		handleCallback(update, bot)
+	}
 }
