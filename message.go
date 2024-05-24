@@ -28,44 +28,53 @@ func setRequestDashboard(domain string) tbot.InlineKeyboardMarkup {
 func handleMessage(update tbot.Update, bot *tbot.BotAPI) {
 	incomingChat := strings.ToLower(update.Message.Text)
 	msg := tbot.NewMessage(update.Message.Chat.ID, update.Message.Text)
-	senderName := update.Message.Chat.FirstName
+
+	var senderName string
+	if update.Message.Chat.IsSuperGroup() {
+		senderName = update.Message.From.FirstName
+	} else {
+		senderName = update.Message.Chat.FirstName
+	}
+
 	intro := fmt.Sprintf("Hello %s ", senderName)
 	msgDash := "Please select dashboard name below here ✅!"
 
 	TimeMessage := time.Unix(int64(update.Message.Date), 0).Format("2006-01-02 15:04:05")
+
 	fmt.Println(fmt.Sprintf("%s - %s : %s", TimeMessage, senderName, incomingChat))
+	ReplyMsg := true
 
-	switch incomingChat {
-
-	case "/start":
+	switch {
+	case strings.HasPrefix(incomingChat, "/start"):
 		msg.Text = fmt.Sprintf("Welcome into %s %s !\nYou can access and request dashboard by typing /dashboard or click in menu !", bot.Self.FirstName, senderName)
-	case "/hi":
-		msg.Text = intro + "i'm " + bot.Self.FirstName
-	case "/help":
-		msg.Text = intro + "this help"
-	case "/about":
-		msg.Text = intro + "this about"
-	case "/dashboard":
+	case strings.HasPrefix(incomingChat, "/help"):
+		msg.Text = "You can tap /dashboard and select domain what you needed,\nthen the dashboard name button will showed up!,\nif u still need help feel free to contact me at https://t.me/fajarh2207"
+	case strings.HasPrefix(incomingChat, "/about"):
+		msg.Text = "Developed at May 2024\nThis bot developed using Go Language and\nusing library github.com/go-telegram-bot-api/telegram-bot-api/v5,\nBuild with love by https://t.me/fajarh2207"
+
+	case strings.HasPrefix(incomingChat, "/dashboard"):
 		msg.Text = fmt.Sprintf("%s\nPlease select domain dashboard below here ✅", intro)
 		msg.ReplyMarkup = dashboardCommand
-	case "ran 📶":
+	case incomingChat == "ran 📶":
 		msg.Text = msgDash
 		msg.ReplyMarkup = setRequestDashboard("ran")
-	case "core 📡":
+	case incomingChat == "core 📡":
 		msg.Text = msgDash
 		msg.ReplyMarkup = setRequestDashboard("core")
-	case "netstat 🌎":
+	case incomingChat == "netstat 🌎":
 		msg.Text = msgDash
 		msg.ReplyMarkup = setRequestDashboard("netstat")
-	case "sales 🛒":
+	case incomingChat == "sales 🛒":
 		msg.Text = msgDash
 		msg.ReplyMarkup = setRequestDashboard("sales")
 	default:
-		msg.Text = "I don't know your command :("
+		ReplyMsg = false
 	}
-	msg.ReplyToMessageID = update.Message.MessageID
-	_, err := bot.Send(msg)
-	isErrorMessage(err, update.Message.Chat.ID, bot)
+	if ReplyMsg {
+		msg.ReplyToMessageID = update.Message.MessageID
+		_, err := bot.Send(msg)
+		isErrorMessage(err, update.Message.Chat.ID, bot)
+	}
 }
 
 func handleCallback(update tbot.Update, bot *tbot.BotAPI) {
